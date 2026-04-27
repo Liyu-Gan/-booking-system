@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CD/CPL 预约系统（修复版 · 云端同步）</title>
+    <title>CD/CPL预约系统（完美修复版）</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { padding: 20px; background: #f8f9fa; }
         .container { max-width: 1200px; margin: 0 auto; }
-        
-        /* 设备按钮选中亮灯效果 */
+
+        /* 设备按钮亮灯 */
         .device-btn {
             padding: 12px 40px;
             font-size: 18px;
@@ -22,7 +22,7 @@
         .btn-cd.active { background: #0d6efd !important; color: white; box-shadow: 0 0 15px #0d6efd80; }
         .btn-cpl.active { background: #198754 !important; color: white; box-shadow: 0 0 15px #19875480; }
 
-        /* 24小时进度条 */
+        /* 24小时时间条 */
         .time-bar {
             height: 60px;
             background: #28a745;
@@ -61,7 +61,7 @@
 <div class="container">
     <h1 class="text-center mb-4">CD / CPL 测试预约系统</h1>
 
-    <!-- 设备选择（亮灯效果） -->
+    <!-- 设备选择 -->
     <div class="d-flex gap-3 justify-content-center mb-4">
         <button id="cdBtn" class="device-btn btn-cd active" onclick="switchDevice('cd')">CD 设备</button>
         <button id="cplBtn" class="device-btn btn-cpl" onclick="switchDevice('cpl')">CPL 设备</button>
@@ -101,7 +101,7 @@
         <div id="msg" class="mt-3"></div>
     </div>
 
-    <!-- 24小时预约进度条 -->
+    <!-- 24小时进度条 -->
     <div class="bg-white p-4 rounded shadow-sm mb-4">
         <h5>24小时预约状态（绿色可预约 / 红色已预约）</h5>
         <div class="time-bar" id="timeBar"></div>
@@ -117,12 +117,11 @@
 
 <script>
 // ==========================
-// 全局配置
+// 全局数据（内存存储，绝对实时刷新）
 // ==========================
 let currentDevice = "cd";
+let data = { cd: {}, cpl: {} }; // 本地实时数据
 const today = new Date().toISOString().split("T")[0];
-const GIST_URL = "https://api.github.com/gists/3c6a5e8637e964f8a925f7c9e87f3a6f";
-const GIST_FILE = "booking-data.json";
 
 // ==========================
 // 初始化
@@ -130,7 +129,7 @@ const GIST_FILE = "booking-data.json";
 window.onload = () => {
     document.getElementById("date").value = today;
     renderTicks();
-    refresh();
+    refreshUI();
 };
 
 // ==========================
@@ -141,7 +140,7 @@ function switchDevice(device) {
     document.getElementById("cdBtn").classList.remove("active");
     document.getElementById("cplBtn").classList.remove("active");
     document.getElementById(device + "Btn").classList.add("active");
-    refresh();
+    refreshUI();
 }
 
 // ==========================
@@ -156,39 +155,9 @@ function renderTicks() {
 }
 
 // ==========================
-// 云端读取（GitHub Gist）
+// 预约操作
 // ==========================
-async function getCloudData() {
-    try {
-        let res = await fetch(GIST_URL);
-        let json = await res.json();
-        return JSON.parse(json.files[GIST_FILE].content) || { cd: {}, cpl: {} };
-    } catch (e) {
-        return { cd: {}, cpl: {} };
-    }
-}
-
-// ==========================
-// 云端保存（GitHub Gist）
-// ==========================
-async function saveCloudData(data) {
-    try {
-        await fetch(GIST_URL, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                files: {
-                    [GIST_FILE]: { content: JSON.stringify(data) }
-                }
-            })
-        });
-    } catch (e) {}
-}
-
-// ==========================
-// 预约
-// ==========================
-async function doBook() {
+function doBook() {
     const date = document.getElementById("date").value;
     const h1 = +document.getElementById("h1").value;
     const m1 = +document.getElementById("m1").value;
@@ -198,46 +167,56 @@ async function doBook() {
     const s2 = +document.getElementById("s2").value;
     const name = document.getElementById("name").value.trim();
 
-    if (!date || !name) return showMsg("请填写完整", "warning");
+    // 校验
+    if (!date || !name) {
+        showMsg("请填写完整信息", "warning");
+        return;
+    }
+
     const t1 = h1 * 3600 + m1 * 60 + s1;
     const t2 = h2 * 3600 + m2 * 60 + s2;
-    if (t1 >= t2) return showMsg("结束时间必须更大", "danger");
 
-    const data = await getCloudData();
-    const day = data[currentDevice][date] || {};
+    if (t1 >= t2) {
+        showMsg("结束时间必须大于开始时间", "danger");
+        return;
+    }
+
+    // 初始化当天数据
+    if (!data[currentDevice][date]) data[currentDevice][date] = {};
+    const dayData = data[currentDevice][date];
 
     // 冲突检查
-    for (let k in day) {
+    for (let k in dayData) {
         let [st, et] = k.split("-");
         let [sh, sm, ss] = st.split(":").map(Number);
         let [eh, em, es] = et.split(":").map(Number);
         let startTime = sh * 3600 + sm * 60 + ss;
         let endTime = eh * 3600 + em * 60 + es;
         if (!(t2 <= startTime || t1 >= endTime)) {
-            return showMsg("时段冲突！", "danger");
+            showMsg("时段冲突！", "danger");
+            return;
         }
     }
 
-    // 保存
+    // 保存预约
     const key = `${fmt(h1)}:${fmt(m1)}:${fmt(s1)}-${fmt(h2)}:${fmt(m2)}:${fmt(s2)}`;
-    if (!data[currentDevice][date]) data[currentDevice][date] = {};
     data[currentDevice][date][key] = name;
-    await saveCloudData(data);
 
-    showMsg("✅ 预约成功！进度条和列表已更新", "success");
+    showMsg("✅ 预约成功！", "success");
     document.getElementById("name").value = "";
-    refresh();
+    
+    // 立即刷新界面（列表+时间条同步变化）
+    refreshUI();
 }
 
 // ==========================
-// 刷新界面（进度条 + 列表）
+// 【核心】刷新界面：列表 + 时间条 同时更新
 // ==========================
-async function refresh() {
+function refreshUI() {
     const date = document.getElementById("date").value;
-    const data = await getCloudData();
     const bookings = data[currentDevice][date] || {};
 
-    // ---------- 更新列表 ----------
+    // ---------- 刷新 已预约列表 ----------
     let listHtml = "";
     for (let k in bookings) {
         listHtml += `
@@ -248,7 +227,7 @@ async function refresh() {
     }
     document.getElementById("bookList").innerHTML = listHtml || "<div class='text-muted'>暂无预约</div>";
 
-    // ---------- 更新24h进度条 ----------
+    // ---------- 刷新 24小时时间条 ----------
     const bar = document.getElementById("timeBar");
     bar.innerHTML = "";
     for (let k in bookings) {
@@ -271,20 +250,18 @@ async function refresh() {
 // ==========================
 // 删除预约
 // ==========================
-async function del(key) {
-    if (!confirm("确定取消？")) return;
+function del(key) {
+    if (!confirm("确定取消预约？")) return;
     const date = document.getElementById("date").value;
-    const data = await getCloudData();
     if (data[currentDevice][date] && data[currentDevice][date][key]) {
         delete data[currentDevice][date][key];
-        await saveCloudData(data);
-        refresh();
+        refreshUI();
         showMsg("已取消", "success");
     }
 }
 
 // ==========================
-// 工具
+// 工具函数
 // ==========================
 function fmt(n) { return n.toString().padStart(2, "0"); }
 function showMsg(text, type) {
@@ -293,8 +270,8 @@ function showMsg(text, type) {
     setTimeout(() => msgEl.innerHTML = "", 2500);
 }
 
-// 日期切换刷新
-document.getElementById("date").addEventListener("change", refresh);
+// 日期切换时刷新
+document.getElementById("date").addEventListener("change", refreshUI);
 </script>
 </body>
 </html>
