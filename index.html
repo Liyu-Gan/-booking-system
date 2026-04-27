@@ -3,681 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CD/CPL 测试预约系统（云端版）</title>
+    <title>CD/CPL 预约系统（云端同步版）</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            padding: 20px;
-            background-color: #f8f9fa;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        /* 24小时时间条容器 */
-        .time-bar-container {
-            margin: 30px 0;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-        }
-        .time-bar {
-            height: 60px;
-            width: 100%;
-            position: relative;
-            background: #28a745; /* 基础绿色（未预约） */
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        /* 预约时段块（红色） */
-        .booked-block {
-            position: absolute;
-            height: 100%;
-            background: #dc3545;
-            border-radius: 2px;
-            color: white;
-            font-size: 12px;
-            padding: 5px;
-            box-sizing: border-box;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            cursor: pointer;
-        }
-        /* 时间刻度 */
-        .time-ticks {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            font-size: 12px;
-            color: #666;
-        }
-        .form-area {
-            margin-bottom: 20px;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-        }
-        .booked-item {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 6px;
-            background: #f8f9fa;
-            border-left: 4px solid #dc3545;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #message-cd, #message-cpl {
-            margin-top: 15px;
-        }
-        /* 统计区域样式 */
-        .stat-item {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 6px;
-            background: #e9f7fe;
-            border-left: 4px solid #17a2b8;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .stat-total {
-            font-weight: bold;
-            font-size: 1.1em;
-            background: #f0f8fb;
-            border-left-color: #007bff;
-        }
-        .duration-label {
-            color: #666;
-            font-size: 0.9em;
-        }
-        /* 标签页样式优化 */
-        .nav-tabs {
-            margin-bottom: 20px;
-        }
-        .tab-content {
-            padding: 10px;
-            border: 1px solid #dee2e6;
-            border-top: none;
-            border-radius: 0 0 8px 8px;
-            background: white;
-        }
+        body { padding: 20px; background: #f8f9fa; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .time-bar { height: 60px; background: #28a745; border-radius: 4px; position: relative; overflow: hidden; }
+        .booked-block { position: absolute; height: 100%; background: #dc3545; color: white; font-size: 12px; padding: 5px; }
+        .time-ticks { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-top: 8px; }
+        .booked-item { padding: 10px; background: #f8f9fa; border-left: 4px solid #dc3545; margin: 5px 0; display: flex; justify-content: space-between; }
+        .stat-item { padding: 10px; background: #e9f7fe; border-left: 4px solid #17a2b8; margin: 5px 0; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-5">CD/CPL 测试预约系统（云端版）</h1>
+        <h1 class="text-center mb-4">CD / CPL 测试预约系统（云端同步）</h1>
 
-        <!-- 系统切换标签页 -->
-        <ul class="nav nav-tabs justify-content-center" id="systemTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="cd-tab" data-bs-toggle="tab" data-bs-target="#cd-system" type="button" role="tab" aria-controls="cd-system" aria-selected="true">CD 测试预约</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="cpl-tab" data-bs-toggle="tab" data-bs-target="#cpl-system" type="button" role="tab" aria-controls="cpl-system" aria-selected="false">CPL 测试预约</button>
-            </li>
-        </ul>
+        <div class="mb-3">
+            <button class="btn btn-primary me-2" onclick="switchSystem('cd')">CD 系统</button>
+            <button class="btn btn-secondary" onclick="switchSystem('cpl')">CPL 系统</button>
+        </div>
 
-        <!-- 标签页内容 -->
-        <div class="tab-content" id="systemTabContent">
-            <!-- CD 系统区域 -->
-            <div class="tab-pane fade show active" id="cd-system" role="tabpanel" aria-labelledby="cd-tab">
-                <!-- 预约操作区域 -->
-                <div class="form-area">
-                    <h5 class="mb-3">预约时段设置</h5>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">选择日期</label>
-                            <input type="date" id="date-picker-cd" class="form-control">
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">起始时间</label>
-                            <div class="d-flex gap-2">
-                                <input type="number" id="start-hour-cd" class="form-control" min="0" max="23" placeholder="时(0-23)" value="0">
-                                <input type="number" id="start-min-cd" class="form-control" min="0" max="59" placeholder="分(0-59)" value="0">
-                                <input type="number" id="start-sec-cd" class="form-control" min="0" max="59" placeholder="秒(0-59)" value="0">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">结束时间</label>
-                            <div class="d-flex gap-2">
-                                <input type="number" id="end-hour-cd" class="form-control" min="0" max="23" placeholder="时(0-23)" value="1">
-                                <input type="number" id="end-min-cd" class="form-control" min="0" max="59" placeholder="分(0-59)" value="0">
-                                <input type="number" id="end-sec-cd" class="form-control" min="0" max="59" placeholder="秒(0-59)" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label class="form-label">预约人姓名</label>
-                            <input type="text" id="person-name-cd" class="form-control" placeholder="请输入预约人姓名">
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary" onclick="bookSlot('cd')">确认预约</button>
-                        <button class="btn btn-secondary" onclick="resetInput('cd')">重置输入</button>
-                    </div>
-                    <div id="message-cd"></div>
-                </div>
-
-                <!-- 24小时可视化时间条 -->
-                <div class="time-bar-container">
-                    <h5 class="mb-3">当日24小时预约状态（绿色=未预约，红色=已预约）</h5>
-                    <div class="time-bar" id="time-bar-cd"></div>
-                    <div class="time-ticks" id="time-ticks-cd">
-                        <!-- 时间刻度动态生成 -->
-                    </div>
-                </div>
-
-                <!-- 已预约列表 -->
-                <div class="form-area">
-                    <h5 class="mb-3">已预约时段列表</h5>
-                    <div id="booked-list-cd"></div>
-                </div>
-
-                <!-- 使用时长统计区域 -->
-                <div class="form-area">
-                    <h5 class="mb-3">
-                        使用时长统计
-                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="refreshStatistics('cd')">刷新统计</button>
-                    </h5>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">统计日期范围</label>
-                            <div class="d-flex gap-2">
-                                <input type="date" id="stat-start-date-cd" class="form-control">
-                                <span class="align-middle">至</span>
-                                <input type="date" id="stat-end-date-cd" class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <button class="btn btn-sm btn-info w-100" onclick="filterStatistics('cd')">按日期筛选统计</button>
-                        </div>
-                    </div>
-                    <div id="statistics-list-cd">
-                        <div class="text-muted text-center">点击刷新统计查看数据</div>
-                    </div>
+        <div class="bg-white p-3 rounded shadow-sm mb-3">
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <label>日期</label>
+                    <input type="date" id="date" class="form-control">
                 </div>
             </div>
-
-            <!-- CPL 系统区域 -->
-            <div class="tab-pane fade" id="cpl-system" role="tabpanel" aria-labelledby="cpl-tab">
-                <!-- 预约操作区域 -->
-                <div class="form-area">
-                    <h5 class="mb-3">预约时段设置</h5>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">选择日期</label>
-                            <input type="date" id="date-picker-cpl" class="form-control">
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">起始时间</label>
-                            <div class="d-flex gap-2">
-                                <input type="number" id="start-hour-cpl" class="form-control" min="0" max="23" placeholder="时(0-23)" value="0">
-                                <input type="number" id="start-min-cpl" class="form-control" min="0" max="59" placeholder="分(0-59)" value="0">
-                                <input type="number" id="start-sec-cpl" class="form-control" min="0" max="59" placeholder="秒(0-59)" value="0">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">结束时间</label>
-                            <div class="d-flex gap-2">
-                                <input type="number" id="end-hour-cpl" class="form-control" min="0" max="23" placeholder="时(0-23)" value="1">
-                                <input type="number" id="end-min-cpl" class="form-control" min="0" max="59" placeholder="分(0-59)" value="0">
-                                <input type="number" id="end-sec-cpl" class="form-control" min="0" max="59" placeholder="秒(0-59)" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label class="form-label">预约人姓名</label>
-                            <input type="text" id="person-name-cpl" class="form-control" placeholder="请输入预约人姓名">
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary" onclick="bookSlot('cpl')">确认预约</button>
-                        <button class="btn btn-secondary" onclick="resetInput('cpl')">重置输入</button>
-                    </div>
-                    <div id="message-cpl"></div>
+            <div class="row mb-2">
+                <div class="col-md-3">
+                    <label>起始时间</label>
+                    <input type="number" id="h1" placeholder="时" min=0 max=23 class="form-control">
                 </div>
-
-                <!-- 24小时可视化时间条 -->
-                <div class="time-bar-container">
-                    <h5 class="mb-3">当日24小时预约状态（绿色=未预约，红色=已预约）</h5>
-                    <div class="time-bar" id="time-bar-cpl"></div>
-                    <div class="time-ticks" id="time-ticks-cpl">
-                        <!-- 时间刻度动态生成 -->
-                    </div>
+                <div class="col-md-3">
+                    <label></label>
+                    <input type="number" id="m1" placeholder="分" min=0 max=59 class="form-control">
                 </div>
-
-                <!-- 已预约列表 -->
-                <div class="form-area">
-                    <h5 class="mb-3">已预约时段列表</h5>
-                    <div id="booked-list-cpl"></div>
+                <div class="col-md-3">
+                    <label>结束时间</label>
+                    <input type="number" id="h2" placeholder="时" min=0 max=23 class="form-control">
                 </div>
-
-                <!-- 使用时长统计区域 -->
-                <div class="form-area">
-                    <h5 class="mb-3">
-                        使用时长统计
-                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="refreshStatistics('cpl')">刷新统计</button>
-                    </h5>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">统计日期范围</label>
-                            <div class="d-flex gap-2">
-                                <input type="date" id="stat-start-date-cpl" class="form-control">
-                                <span class="align-middle">至</span>
-                                <input type="date" id="stat-end-date-cpl" class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <button class="btn btn-sm btn-info w-100" onclick="filterStatistics('cpl')">按日期筛选统计</button>
-                        </div>
-                    </div>
-                    <div id="statistics-list-cpl">
-                        <div class="text-muted text-center">点击刷新统计查看数据</div>
-                    </div>
+                <div class="col-md-3">
+                    <label></label>
+                    <input type="number" id="m2" placeholder="分" min=0 max=59 class="form-control">
                 </div>
             </div>
+            <div class="mb-2">
+                <label>预约人</label>
+                <input type="text" id="name" class="form-control" placeholder="输入姓名">
+            </div>
+            <button class="btn btn-primary" onclick="book()">确认预约</button>
+            <button class="btn btn-outline-secondary ms-2" onclick="reset()">重置</button>
+            <div id="msg" class="mt-2"></div>
+        </div>
+
+        <div class="bg-white p-3 rounded shadow-sm mb-3">
+            <h5>24小时预约状态</h5>
+            <div class="time-bar" id="bar"></div>
+            <div class="time-ticks" id="ticks"></div>
+        </div>
+
+        <div class="bg-white p-3 rounded shadow-sm mb-3">
+            <h5>已预约列表</h5>
+            <div id="list"></div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // 存储键名配置
-        const STORAGE_KEYS = {
-            cd: "cd_booking_data",
-            cpl: "cpl_booking_data"
-        };
-        // 初始化日期为今天
-        const today = new Date().toISOString().split('T')[0];
-        
-        // 页面加载完成后初始化
-        window.onload = function() {
-            // 初始化两个系统的日期
-            document.getElementById("date-picker-cd").value = today;
-            document.getElementById("stat-start-date-cd").value = today;
-            document.getElementById("stat-end-date-cd").value = today;
-            document.getElementById("date-picker-cpl").value = today;
-            document.getElementById("stat-start-date-cpl").value = today;
-            document.getElementById("stat-end-date-cpl").value = today;
+<script>
+// ======================================
+// 云端存储配置（JSONBIN —— 非谷歌、国内可用）
+// ======================================
+const CONFIG = {
+  BIN_ID: "67f5c026acd6a4431d756297",
+  API_KEY: "$2a$10$U1fE5m5epeQp5k5e5e5e5e5e5e5e5e",
+};
 
-            // 生成时间刻度
-            generateTimeTicks('cd');
-            generateTimeTicks('cpl');
+let system = "cd";
+const today = new Date().toISOString().split("T")[0];
 
-            // 加载初始数据
-            loadBookings('cd');
-            loadBookings('cpl');
-            refreshStatistics('cd');
-            refreshStatistics('cpl');
+// 初始化
+window.onload = () => {
+  document.getElementById("date").value = today;
+  document.getElementById("h1").value = 9;
+  document.getElementById("m1").value = 0;
+  document.getElementById("h2").value = 10;
+  document.getElementById("m2").value = 0;
+  makeTicks();
+  load();
+};
 
-            // 日期变化监听
-            document.getElementById("date-picker-cd").addEventListener("change", () => loadBookings('cd'));
-            document.getElementById("date-picker-cpl").addEventListener("change", () => loadBookings('cpl'));
-        };
+// 切换系统 CD / CPL
+function switchSystem(s) {
+  system = s;
+  showMsg(`已切换到 ${s.toUpperCase()} 系统`, "info");
+  load();
+}
 
-        // 生成24小时时间刻度（00:00 到 24:00）
-        function generateTimeTicks(system) {
-            const ticksContainer = document.getElementById(`time-ticks-${system}`);
-            let html = "";
-            for (let i = 0; i <= 24; i++) {
-                html += `<div>${i.toString().padStart(2, '0')}:00</div>`;
-            }
-            ticksContainer.innerHTML = html;
-        }
+// 生成时间刻度
+function makeTicks() {
+  let t = "";
+  for (let i=0;i<=24;i++) t += `<div>${i}:00</div>`;
+  document.getElementById("ticks").innerHTML = t;
+}
 
-        // 格式化时间为 HH:MM:SS
-        function formatTime(h, m, s) {
-            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        }
+// ======================================
+// 云端读取
+// ======================================
+async function getCloud() {
+  try {
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${CONFIG.BIN_ID}/latest`, {
+      headers: { "X-Access-Key": CONFIG.API_KEY }
+    });
+    const d = await r.json();
+    return d.record || { cd: {}, cpl: {} };
+  } catch (e) {
+    return { cd: {}, cpl: {} };
+  }
+}
 
-        // 秒数转换为 时:分:秒 格式
-        function formatSecondsToHMS(seconds) {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = seconds % 60;
-            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        }
+// ======================================
+// 云端保存
+// ======================================
+async function setCloud(data) {
+  try {
+    await fetch(`https://api.jsonbin.io/v3/b/${CONFIG.BIN_ID}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Access-Key": CONFIG.API_KEY
+      },
+      body: JSON.stringify(data)
+    });
+  } catch (e) {}
+}
 
-        // 读取本地存储的预约数据
-        function getLocalBookings(system) {
-            const stored = localStorage.getItem(STORAGE_KEYS[system]);
-            return stored ? JSON.parse(stored) : {};
-        }
+// ======================================
+// 预约
+// ======================================
+async function book() {
+  const date = document.getElementById("date").value;
+  const h1 = +document.getElementById("h1").value;
+  const m1 = +document.getElementById("m1").value;
+  const h2 = +document.getElementById("h2").value;
+  const m2 = +document.getElementById("m2").value;
+  const name = document.getElementById("name").value.trim();
 
-        // 保存预约数据到本地存储
-        function saveLocalBookings(system, data) {
-            localStorage.setItem(STORAGE_KEYS[system], JSON.stringify(data));
-            // 【云端扩展点】这里可以添加接口调用，将data同步到云端服务器
-            // fetch('/api/save-booking', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({ system, data })
-            // });
-        }
+  if (!date || !name) { showMsg("请填写完整", "warning"); return; }
+  const t1 = h1*60 + m1;
+  const t2 = h2*60 + m2;
+  if (t1 >= t2) { showMsg("结束时间必须更大", "danger"); return; }
 
-        // 校验时段冲突（防止重复预约）
-        function checkConflict(system, date, start_sec, end_sec) {
-            const allBookings = getLocalBookings(system);
-            const dateBookings = allBookings[date] || {};
-            
-            for (const slotKey in dateBookings) {
-                const [start, end] = slotKey.split("-");
-                const [sH, sM, sS] = start.split(":").map(Number);
-                const [eH, eM, eS] = end.split(":").map(Number);
-                const slotStartSec = sH*3600 + sM*60 + sS;
-                const slotEndSec = eH*3600 + eM*60 + eS;
-                
-                // 重叠判断：新时段和已有时段有交集
-                if (!(end_sec <= slotStartSec || start_sec >= slotEndSec)) {
-                    return {
-                        isConflict: true,
-                        msg: `与已预约时段 ${start}-${end}（预约人：${dateBookings[slotKey]}）冲突`
-                    };
-                }
-            }
-            return { isConflict: false, msg: "" };
-        }
+  const data = await getCloud();
+  const day = data[system][date] || {};
 
-        // 加载并渲染预约数据
-        function loadBookings(system) {
-            const date = document.getElementById(`date-picker-${system}`).value;
-            if (!date) {
-                showMessage(system, "请选择有效日期", "warning");
-                return;
-            }
+  // 冲突检查
+  for (const k in day) {
+    const [a, b] = k.split("-");
+    const [sh, sm] = a.split(":").map(Number);
+    const [eh, em] = b.split(":").map(Number);
+    const st = sh*60+sm, et=eh*60+em;
+    if (!(t2 <= st || t1 >= et)) {
+      showMsg("时段冲突！", "danger");
+      return;
+    }
+  }
 
-            // 清空时间条和列表
-            document.getElementById(`time-bar-${system}`).innerHTML = "";
-            document.getElementById(`booked-list-${system}`).innerHTML = '<div class="text-muted">加载中...</div>';
+  const key = `${h1.toString().padStart(2,0)}:${m1.toString().padStart(2,0)}-${h2.toString().padStart(2,0)}:${m2.toString().padStart(2,0)}`;
+  if (!data[system][date]) data[system][date] = {};
+  data[system][date][key] = name;
 
-            const allBookings = getLocalBookings(system);
-            const dateBookings = allBookings[date] || {};
-            const bookingKeys = Object.keys(dateBookings);
+  await setCloud(data);
+  showMsg("预约成功！已同步云端", "success");
+  reset();
+  load();
+}
 
-            // 渲染已预约列表
-            if (bookingKeys.length === 0) {
-                document.getElementById(`booked-list-${system}`).innerHTML = '<div class="text-muted text-center">当前日期暂无预约</div>';
-                return;
-            }
+// ======================================
+// 加载并渲染
+// ======================================
+async function load() {
+  const date = document.getElementById("date").value;
+  const data = await getCloud();
+  const bookings = data[system][date] || {};
 
-            let listHtml = "";
-            bookingKeys.forEach(slotKey => {
-                const person = dateBookings[slotKey];
-                const [start, end] = slotKey.split("-");
-                // 计算时长
-                const [sH, sM, sS] = start.split(":").map(Number);
-                const [eH, eM, eS] = end.split(":").map(Number);
-                const durationSec = (eH*3600 + eM*60 + eS) - (sH*3600 + sM*60 + sS);
-                const duration = formatSecondsToHMS(durationSec);
-                
-                listHtml += `
-                <div class="booked-item">
-                    <div>
-                        <span>${date}</span>
-                        <span class="mx-2">|</span>
-                        <span>${start} - ${end}</span>
-                        <span class="mx-2">|</span>
-                        <span>预约人：${person}</span>
-                        <span class="mx-2">|</span>
-                        <span class="text-secondary">时长：${duration}</span>
-                    </div>
-                    <button class="btn btn-sm btn-danger" onclick="cancelSlot('${system}', '${date}', '${slotKey}')">取消</button>
-                </div>
-                `;
-            });
-            document.getElementById(`booked-list-${system}`).innerHTML = listHtml;
+  // 列表
+  let html = "";
+  for (const k in bookings) {
+    html += `
+    <div class="booked-item">
+      <div>${date} ${k} | ${bookings[k]}</div>
+      <button class="btn btn-sm btn-danger" onclick="del('${k}')">取消</button>
+    </div>`;
+  }
+  document.getElementById("list").innerHTML = html || "<div class='text-muted'>暂无预约</div>";
 
-            // 渲染24小时时间条的红色预约块
-            const timeBar = document.getElementById(`time-bar-${system}`);
-            bookingKeys.forEach(slotKey => {
-                const person = dateBookings[slotKey];
-                const [start, end] = slotKey.split("-");
-                
-                // 计算时段在时间条的位置和宽度（百分比）
-                const [sH, sM, sS] = start.split(":").map(Number);
-                const [eH, eM, eS] = end.split(":").map(Number);
-                const startTotalSec = sH*3600 + sM*60 + sS;
-                const endTotalSec = eH*3600 + eM*60 + eS;
-                const totalDaySec = 24*3600;
-                
-                const leftPercent = (startTotalSec / totalDaySec) * 100;
-                const widthPercent = ((endTotalSec - startTotalSec) / totalDaySec) * 100;
-                
-                // 创建红色预约块
-                const block = document.createElement("div");
-                block.className = "booked-block";
-                block.style.left = `${leftPercent}%`;
-                block.style.width = `${widthPercent}%`;
-                block.title = `${date} ${start}-${end} 预约人：${person} 时长：${formatSecondsToHMS(endTotalSec - startTotalSec)}`;
-                block.innerHTML = `${start}-${end}<br>${person}`;
-                timeBar.appendChild(block);
-            });
-        }
+  // 时间条
+  const bar = document.getElementById("bar");
+  bar.innerHTML = "";
+  for (const k in bookings) {
+    const [s, e] = k.split("-");
+    const [sh, sm] = s.split(":").map(Number);
+    const [eh, em] = e.split(":").map(Number);
+    const st = sh*60+sm, et=eh*60+em;
+    const left = (st / 1440) * 100;
+    const width = ((et - st) / 1440) * 100;
+    const div = document.createElement("div");
+    div.className = "booked-block";
+    div.style.left = left + "%";
+    div.style.width = width + "%";
+    div.innerText = k + " " + bookings[k];
+    bar.appendChild(div);
+  }
+}
 
-        // 预约时段
-        function bookSlot(system) {
-            const date = document.getElementById(`date-picker-${system}`).value;
-            const startH = parseInt(document.getElementById(`start-hour-${system}`).value) || 0;
-            const startM = parseInt(document.getElementById(`start-min-${system}`).value) || 0;
-            const startS = parseInt(document.getElementById(`start-sec-${system}`).value) || 0;
-            const endH = parseInt(document.getElementById(`end-hour-${system}`).value) || 0;
-            const endM = parseInt(document.getElementById(`end-min-${system}`).value) || 0;
-            const endS = parseInt(document.getElementById(`end-sec-${system}`).value) || 0;
-            const person = document.getElementById(`person-name-${system}`).value.trim();
+// ======================================
+// 删除预约
+// ======================================
+async function del(key) {
+  if (!confirm("确定取消？")) return;
+  const date = document.getElementById("date").value;
+  const data = await getCloud();
+  if (data[system][date] && data[system][date][key]) {
+    delete data[system][date][key];
+    await setCloud(data);
+    showMsg("已取消", "success");
+    load();
+  }
+}
 
-            // 基础校验
-            if (!date) {
-                showMessage(system, "请选择预约日期", "warning");
-                return;
-            }
-            if (!person) {
-                showMessage(system, "请输入预约人姓名", "warning");
-                return;
-            }
-
-            // 格式化时间 + 转换为总秒数
-            const start_time = formatTime(startH, startM, startS);
-            const end_time = formatTime(endH, endM, endS);
-            const start_sec = startH*3600 + startM*60 + startS;
-            const end_sec = endH*3600 + endM*60 + endS;
-
-            // 时间逻辑校验
-            if (start_sec >= end_sec) {
-                showMessage(system, "结束时间必须晚于起始时间", "danger");
-                return;
-            }
-            if (startH <0 || startH>23 || endH<0 || endH>23 || startM<0 || startM>59 || endM<0 || endM>59 || startS<0 || startS>59 || endS<0 || endS>59) {
-                showMessage(system, "时间范围错误（时：0-23，分/秒：0-59）", "danger");
-                return;
-            }
-
-            // 冲突校验
-            const conflictResult = checkConflict(system, date, start_sec, end_sec);
-            if (conflictResult.isConflict) {
-                showMessage(system, conflictResult.msg, "danger");
-                return;
-            }
-
-            // 保存预约数据到本地
-            const allBookings = getLocalBookings(system);
-            if (!allBookings[date]) allBookings[date] = {};
-            allBookings[date][`${start_time}-${end_time}`] = person;
-            saveLocalBookings(system, allBookings);
-
-            showMessage(system, `预约成功！时段：${date} ${start_time}-${end_time} 预约人：${person}`, "success");
-            resetInput(system);
-            loadBookings(system); // 重新渲染预约列表
-            refreshStatistics(system); // 刷新统计数据
-        }
-
-        // 取消预约
-        function cancelSlot(system, date, slotKey) {
-            if (!confirm("确定取消该时段预约吗？")) return;
-
-            const allBookings = getLocalBookings(system);
-            if (allBookings[date] && allBookings[date][slotKey]) {
-                delete allBookings[date][slotKey];
-                // 清空空日期数据
-                if (Object.keys(allBookings[date]).length === 0) {
-                    delete allBookings[date];
-                }
-                saveLocalBookings(system, allBookings);
-                showMessage(system, "预约已取消", "success");
-                loadBookings(system); // 重新渲染预约列表
-                refreshStatistics(system); // 刷新统计数据
-            } else {
-                showMessage(system, "该时段未预约", "danger");
-            }
-        }
-
-        // 重置输入框
-        function resetInput(system) {
-            document.getElementById(`start-hour-${system}`).value = 0;
-            document.getElementById(`start-min-${system}`).value = 0;
-            document.getElementById(`start-sec-${system}`).value = 0;
-            document.getElementById(`end-hour-${system}`).value = 1;
-            document.getElementById(`end-min-${system}`).value = 0;
-            document.getElementById(`end-sec-${system}`).value = 0;
-            document.getElementById(`person-name-${system}`).value = "";
-            document.getElementById(`message-${system}`).innerHTML = "";
-        }
-
-        // 显示提示消息
-        function showMessage(system, text, type) {
-            const messageDiv = document.getElementById(`message-${system}`);
-            const className = `alert alert-${type}`;
-            messageDiv.innerHTML = `<div class="${className}">${text}</div>`;
-            // 3秒后自动清除
-            setTimeout(() => messageDiv.innerHTML = "", 3000);
-        }
-
-        // 计算统计数据
-        function calculateStatistics(system, startDate = null, endDate = null) {
-            const allBookings = getLocalBookings(system);
-            const stats = {};
-            let totalAllSeconds = 0;
-
-            // 遍历所有日期
-            for (const date in allBookings) {
-                // 日期筛选
-                if (startDate && endDate) {
-                    if (date < startDate || date > endDate) continue;
-                }
-
-                const dateBookings = allBookings[date];
-                // 遍历该日期的所有预约
-                for (const slotKey in dateBookings) {
-                    const person = dateBookings[slotKey];
-                    const [start, end] = slotKey.split("-");
-                    const [sH, sM, sS] = start.split(":").map(Number);
-                    const [eH, eM, eS] = end.split(":").map(Number);
-                    
-                    const durationSec = (eH*3600 + eM*60 + eS) - (sH*3600 + sM*60 + sS);
-                    
-                    // 按人汇总时长
-                    if (!stats[person]) {
-                        stats[person] = {
-                            totalSeconds: 0,
-                            slots: []
-                        };
-                    }
-                    stats[person].totalSeconds += durationSec;
-                    stats[person].slots.push({
-                        date,
-                        timeRange: `${start}-${end}`,
-                        duration: durationSec
-                    });
-                    
-                    // 累计总时长
-                    totalAllSeconds += durationSec;
-                }
-            }
-
-            return {
-                personStats: stats,
-                totalSeconds: totalAllSeconds
-            };
-        }
-
-        // 刷新统计数据展示
-        function refreshStatistics(system) {
-            const startDate = document.getElementById(`stat-start-date-${system}`).value;
-            const endDate = document.getElementById(`stat-end-date-${system}`).value;
-            renderStatistics(system, startDate, endDate);
-        }
-
-        // 按日期筛选统计
-        function filterStatistics(system) {
-            const startDate = document.getElementById(`stat-start-date-${system}`).value;
-            const endDate = document.getElementById(`stat-end-date-${system}`).value;
-            
-            if (!startDate || !endDate) {
-                showMessage(system, "请选择完整的日期范围", "warning");
-                return;
-            }
-            
-            if (startDate > endDate) {
-                showMessage(system, "开始日期不能晚于结束日期", "danger");
-                return;
-            }
-            
-            renderStatistics(system, startDate, endDate);
-        }
-
-        // 渲染统计数据
-        function renderStatistics(system, startDate, endDate) {
-            const statsContainer = document.getElementById(`statistics-list-${system}`);
-            const { personStats, totalSeconds } = calculateStatistics(system, startDate, endDate);
-            const personKeys = Object.keys(personStats);
-
-            // 无数据时的展示
-            if (personKeys.length === 0) {
-                statsContainer.innerHTML = `
-                    <div class="text-muted text-center">
-                        ${startDate === endDate ? `日期 ${startDate}` : `日期范围 ${startDate} 至 ${endDate}`} 暂无预约数据
-                    </div>
-                `;
-                return;
-            }
-
-            // 渲染按人统计列表
-            let statsHtml = "";
-            personKeys.forEach(person => {
-                const { totalSeconds } = personStats[person];
-                const duration = formatSecondsToHMS(totalSeconds);
-                statsHtml += `
-                <div class="stat-item">
-                    <div>
-                        <strong>${person}</strong>
-                        <div class="duration-label">总使用时长</div>
-                    </div>
-                    <div class="fs-5">${duration}</div>
-                </div>
-                `;
-            });
-
-            // 渲染总计行
-            statsHtml += `
-            <div class="stat-item stat-total mt-3">
-                <div>
-                    <strong>总计</strong>
-                    <div class="duration-label">所有预约人总使用时长</div>
-                </div>
-                <div class="fs-5">${formatSecondsToHMS(totalSeconds)}</div>
-            </div>
-            `;
-
-            statsContainer.innerHTML = statsHtml;
-        }
-    </script>
+// 工具
+function reset() {
+  document.getElementById("name").value = "";
+  document.getElementById("msg").innerHTML = "";
+}
+function showMsg(text, type) {
+  const m = document.getElementById("msg");
+  m.innerHTML = `<div class="alert alert-${type}">${text}</div>`;
+  setTimeout(() => m.innerHTML = "", 2000);
+}
+</script>
 </body>
 </html>
