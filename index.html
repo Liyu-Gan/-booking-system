@@ -3,245 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CD/CPL 预约系统（云端同步版）</title>
+    <title>CD/CPL 测试预约系统（云端同步）</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { padding: 20px; background: #f8f9fa; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .time-bar { height: 60px; background: #28a745; border-radius: 4px; position: relative; overflow: hidden; }
-        .booked-block { position: absolute; height: 100%; background: #dc3545; color: white; font-size: 12px; padding: 5px; }
-        .time-ticks { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-top: 8px; }
-        .booked-item { padding: 10px; background: #f8f9fa; border-left: 4px solid #dc3545; margin: 5px 0; display: flex; justify-content: space-between; }
-        .stat-item { padding: 10px; background: #e9f7fe; border-left: 4px solid #17a2b8; margin: 5px 0; display: flex; justify-content: space-between; }
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .device-btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .device-cd {
+            background: #6c757d;
+            color: white;
+        }
+        .device-cpl {
+            background: #6c757d;
+            color: white;
+        }
+        .device-cd.active {
+            background: #0d6efd !important;
+            box-shadow: 0 0 15px rgba(13, 110, 253, 0.5);
+        }
+        .device-cpl.active {
+            background: #198754 !important;
+            box-shadow: 0 0 15px rgba(25, 135, 84, 0.5);
+        }
+        .time-bar-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .time-bar {
+            height: 60px;
+            width: 100%;
+            position: relative;
+            background: #28a745;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .booked-block {
+            position: absolute;
+            height: 100%;
+            background: #dc3545;
+            color: white;
+            font-size: 12px;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        .time-ticks {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        .form-area {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .booked-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #message {
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-4">CD / CPL 测试预约系统（云端同步）</h1>
+        <h1 class="text-center mb-4">CD / CPL 测试预约系统</h1>
 
-        <div class="mb-3">
-            <button class="btn btn-primary me-2" onclick="switchSystem('cd')">CD 系统</button>
-            <button class="btn btn-secondary" onclick="switchSystem('cpl')">CPL 系统</button>
+        <!-- 设备选择按钮 -->
+        <div class="d-flex gap-3 justify-content-center mb-4">
+            <button id="btn-cd" class="device-btn device-cd active" onclick="switchDevice('cd')">CD 设备</button>
+            <button id="btn-cpl" class="device-btn device-cpl" onclick="switchDevice('cpl')">CPL 设备</button>
         </div>
 
-        <div class="bg-white p-3 rounded shadow-sm mb-3">
-            <div class="row mb-2">
-                <div class="col-md-4">
-                    <label>日期</label>
-                    <input type="date" id="date" class="form-control">
+        <!-- 预约表单 -->
+        <div class="form-area">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>选择日期</label>
+                    <input type="date" id="date-picker" class="form-control">
                 </div>
             </div>
-            <div class="row mb-2">
-                <div class="col-md-3">
-                    <label>起始时间</label>
-                    <input type="number" id="h1" placeholder="时" min=0 max=23 class="form-control">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>起始时间（时:分:秒）</label>
+                    <div class="d-flex gap-2">
+                        <input type="number" id="h1" min="0" max="23" placeholder="时" class="form-control" value="9">
+                        <input type="number" id="m1" min="0" max="59" placeholder="分" class="form-control" value="0">
+                        <input type="number" id="s1" min="0" max="59" placeholder="秒" class="form-control" value="0">
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <label></label>
-                    <input type="number" id="m1" placeholder="分" min=0 max=59 class="form-control">
-                </div>
-                <div class="col-md-3">
-                    <label>结束时间</label>
-                    <input type="number" id="h2" placeholder="时" min=0 max=23 class="form-control">
-                </div>
-                <div class="col-md-3">
-                    <label></label>
-                    <input type="number" id="m2" placeholder="分" min=0 max=59 class="form-control">
+                <div class="col-md-6">
+                    <label>结束时间（时:分:秒）</label>
+                    <div class="d-flex gap-2">
+                        <input type="number" id="h2" min="0" max="23" placeholder="时" class="form-control" value="10">
+                        <input type="number" id="m2" min="0" max="59" placeholder="分" class="form-control" value="0">
+                        <input type="number" id="s2" min="0" max="59" placeholder="秒" class="form-control" value="0">
+                    </div>
                 </div>
             </div>
-            <div class="mb-2">
-                <label>预约人</label>
-                <input type="text" id="name" class="form-control" placeholder="输入姓名">
+            <div class="mb-3">
+                <label>预约人姓名</label>
+                <input type="text" id="user-name" class="form-control" placeholder="请输入姓名">
             </div>
-            <button class="btn btn-primary" onclick="book()">确认预约</button>
-            <button class="btn btn-outline-secondary ms-2" onclick="reset()">重置</button>
-            <div id="msg" class="mt-2"></div>
+            <button class="btn btn-primary w-100" onclick="confirmBook()">确认预约</button>
+            <div id="message" class="mt-2"></div>
         </div>
 
-        <div class="bg-white p-3 rounded shadow-sm mb-3">
+        <!-- 24小时时间条 -->
+        <div class="time-bar-container">
             <h5>24小时预约状态</h5>
-            <div class="time-bar" id="bar"></div>
-            <div class="time-ticks" id="ticks"></div>
+            <div class="time-bar" id="time-bar"></div>
+            <div class="time-ticks" id="time-ticks"></div>
         </div>
 
-        <div class="bg-white p-3 rounded shadow-sm mb-3">
+        <!-- 已预约列表 -->
+        <div class="form-area">
             <h5>已预约列表</h5>
-            <div id="list"></div>
+            <div id="booked-list"></div>
         </div>
     </div>
 
 <script>
-// ======================================
-// 云端存储配置（JSONBIN —— 非谷歌、国内可用）
-// ======================================
-const CONFIG = {
-  BIN_ID: "67f5c026acd6a4431d756297",
-  API_KEY: "$2a$10$U1fE5m5epeQp5k5e5e5e5e5e5e5e5e",
-};
+// ==========================================
+// 全局变量
+// ==========================================
+let currentDevice = "cd";
+const today = new Date().toISOString().split('T')[0];
 
-let system = "cd";
-const today = new Date().toISOString().split("T")[0];
-
+// ==========================================
 // 初始化
-window.onload = () => {
-  document.getElementById("date").value = today;
-  document.getElementById("h1").value = 9;
-  document.getElementById("m1").value = 0;
-  document.getElementById("h2").value = 10;
-  document.getElementById("m2").value = 0;
-  makeTicks();
-  load();
+// ==========================================
+window.onload = function() {
+    document.getElementById("date-picker").value = today;
+    generateTimeTicks();
+    loadData();
 };
 
-// 切换系统 CD / CPL
-function switchSystem(s) {
-  system = s;
-  showMsg(`已切换到 ${s.toUpperCase()} 系统`, "info");
-  load();
+// ==========================================
+// 设备切换（选中高亮）
+// ==========================================
+function switchDevice(device) {
+    currentDevice = device;
+    // 按钮高亮
+    document.getElementById("btn-cd").classList.remove("active");
+    document.getElementById("btn-cpl").classList.remove("active");
+    document.getElementById(`btn-${device}`).classList.add("active");
+    // 刷新数据
+    loadData();
+    showMsg(`已切换至 ${device.toUpperCase()} 设备`, "success");
 }
 
-// 生成时间刻度
-function makeTicks() {
-  let t = "";
-  for (let i=0;i<=24;i++) t += `<div>${i}:00</div>`;
-  document.getElementById("ticks").innerHTML = t;
-}
-
-// ======================================
-// 云端读取
-// ======================================
-async function getCloud() {
-  try {
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${CONFIG.BIN_ID}/latest`, {
-      headers: { "X-Access-Key": CONFIG.API_KEY }
-    });
-    const d = await r.json();
-    return d.record || { cd: {}, cpl: {} };
-  } catch (e) {
-    return { cd: {}, cpl: {} };
-  }
-}
-
-// ======================================
-// 云端保存
-// ======================================
-async function setCloud(data) {
-  try {
-    await fetch(`https://api.jsonbin.io/v3/b/${CONFIG.BIN_ID}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Access-Key": CONFIG.API_KEY
-      },
-      body: JSON.stringify(data)
-    });
-  } catch (e) {}
-}
-
-// ======================================
-// 预约
-// ======================================
-async function book() {
-  const date = document.getElementById("date").value;
-  const h1 = +document.getElementById("h1").value;
-  const m1 = +document.getElementById("m1").value;
-  const h2 = +document.getElementById("h2").value;
-  const m2 = +document.getElementById("m2").value;
-  const name = document.getElementById("name").value.trim();
-
-  if (!date || !name) { showMsg("请填写完整", "warning"); return; }
-  const t1 = h1*60 + m1;
-  const t2 = h2*60 + m2;
-  if (t1 >= t2) { showMsg("结束时间必须更大", "danger"); return; }
-
-  const data = await getCloud();
-  const day = data[system][date] || {};
-
-  // 冲突检查
-  for (const k in day) {
-    const [a, b] = k.split("-");
-    const [sh, sm] = a.split(":").map(Number);
-    const [eh, em] = b.split(":").map(Number);
-    const st = sh*60+sm, et=eh*60+em;
-    if (!(t2 <= st || t1 >= et)) {
-      showMsg("时段冲突！", "danger");
-      return;
+// ==========================================
+// 生成24小时刻度
+// ==========================================
+function generateTimeTicks() {
+    let html = "";
+    for (let i=0; i<=24; i++) {
+        html += `<div>${i.toString().padStart(2,'0')}:00</div>`;
     }
-  }
-
-  const key = `${h1.toString().padStart(2,0)}:${m1.toString().padStart(2,0)}-${h2.toString().padStart(2,0)}:${m2.toString().padStart(2,0)}`;
-  if (!data[system][date]) data[system][date] = {};
-  data[system][date][key] = name;
-
-  await setCloud(data);
-  showMsg("预约成功！已同步云端", "success");
-  reset();
-  load();
+    document.getElementById("time-ticks").innerHTML = html;
 }
 
-// ======================================
-// 加载并渲染
-// ======================================
-async function load() {
-  const date = document.getElementById("date").value;
-  const data = await getCloud();
-  const bookings = data[system][date] || {};
-
-  // 列表
-  let html = "";
-  for (const k in bookings) {
-    html += `
-    <div class="booked-item">
-      <div>${date} ${k} | ${bookings[k]}</div>
-      <button class="btn btn-sm btn-danger" onclick="del('${k}')">取消</button>
-    </div>`;
-  }
-  document.getElementById("list").innerHTML = html || "<div class='text-muted'>暂无预约</div>";
-
-  // 时间条
-  const bar = document.getElementById("bar");
-  bar.innerHTML = "";
-  for (const k in bookings) {
-    const [s, e] = k.split("-");
-    const [sh, sm] = s.split(":").map(Number);
-    const [eh, em] = e.split(":").map(Number);
-    const st = sh*60+sm, et=eh*60+em;
-    const left = (st / 1440) * 100;
-    const width = ((et - st) / 1440) * 100;
-    const div = document.createElement("div");
-    div.className = "booked-block";
-    div.style.left = left + "%";
-    div.style.width = width + "%";
-    div.innerText = k + " " + bookings[k];
-    bar.appendChild(div);
-  }
+// ==========================================
+// 云端存储读写
+// ==========================================
+async function getData() {
+    try {
+        let res = await fetch("https://api.jsonbin.io/v3/b/67f6e1d6acd6a4431d761e0f/latest", {
+            headers: { "X-Access-Key": "$2a$10$E5kK1E/.xQdJH5wmcK1iFuLk2aGdJgdmUVvF2mJ7d0d0d0d0d0d0d" }
+        });
+        let data = await res.json();
+        return data.record || { cd: {}, cpl: {} };
+    } catch (e) {
+        return { cd: {}, cpl: {} };
+    }
 }
 
-// ======================================
-// 删除预约
-// ======================================
-async function del(key) {
-  if (!confirm("确定取消？")) return;
-  const date = document.getElementById("date").value;
-  const data = await getCloud();
-  if (data[system][date] && data[system][date][key]) {
-    delete data[system][date][key];
-    await setCloud(data);
-    showMsg("已取消", "success");
-    load();
-  }
+async function saveData(data) {
+    await fetch("https://api.jsonbin.io/v3/b/67f6e1d6acd6a4431d761e0f", {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Access-Key": "$2a$10$E5kK1E/.xQdJH5wmcK1iFuLk2aGdJgdmUVvF2mJ7d0d0d0d0d0d"
+        },
+        body: JSON.stringify(data)
+    });
 }
 
-// 工具
-function reset() {
-  document.getElementById("name").value = "";
-  document.getElementById("msg").innerHTML = "";
+// ==========================================
+// 确认预约
+// ==========================================
+async function confirmBook() {
+    const date = document.getElementById("date-picker").value;
+    const h1 = +document.getElementById("h1").value;
+    const m1 = +document.getElementById("m1").value;
+    const s1 = +document.getElementById("s1").value;
+    const h2 = +document.getElementById("h2").value;
+    const m2 = +document.getElementById("m2").value;
+    const s2 = +document.getElementById("s2").value;
+    const name = document.getElementById("user-name").value.trim();
+
+    if (!date || !name) {
+        showMsg("请填写完整信息", "warning");
+        return;
+    }
+
+    const t1 = h1*3600 + m1*60 + s1;
+    const t2 = h2*3600 + m2*60 + s2;
+
+    if (t1 >= t2) {
+        showMsg("结束时间必须大于开始时间", "danger");
+        return;
+    }
+
+    const data = await getData();
+    const dayData = data[currentDevice][date] || {};
+
+    // 冲突检查
+    for (let key in dayData) {
+        let [start, end] = key.split("-");
+        let [sh, sm, ss] = start.split(":").map(Number);
+        let [eh, em, es] = end.split(":").map(Number);
+        let st = sh*3600+sm*60+ss;
+        let et = eh*3600+em*60+es;
+        if (!(t2 <= st || t1 >= et)) {
+            showMsg("时段冲突！", "danger");
+            return;
+        }
+    }
+
+    // 保存
+    const timeStr = `${fmt(h1)}:${fmt(m1)}:${fmt(s1)}-${fmt(h2)}:${fmt(m2)}:${fmt(s2)}`;
+    if (!data[currentDevice][date]) data[currentDevice][date] = {};
+    data[currentDevice][date][timeStr] = name;
+    await saveData(data);
+
+    showMsg("预约成功！", "success");
+    document.getElementById("user-name").value = "";
+    loadData();
 }
+
+// ==========================================
+// 加载并刷新：时间条 + 预约列表
+// ==========================================
+async function loadData() {
+    const date = document.getElementById("date-picker").value;
+    const data = await getData();
+    const bookings = data[currentDevice][date] || {};
+
+    // ========== 更新 预约列表 ==========
+    let listHtml = "";
+    for (let key in bookings) {
+        listHtml += `
+        <div class="booked-item">
+            <span>${date} ${key}  预约人：${bookings[key]}</span>
+            <button class="btn btn-sm btn-danger" onclick="delBook('${key}')">取消</button>
+        </div>`;
+    }
+    document.getElementById("booked-list").innerHTML = listHtml || "<div class='text-muted'>暂无预约</div>";
+
+    // ========== 更新 24小时时间条 ==========
+    const bar = document.getElementById("time-bar");
+    bar.innerHTML = "";
+
+    for (let key in bookings) {
+        let [start, end] = key.split("-");
+        let [sh, sm, ss] = start.split(":").map(Number);
+        let [eh, em, es] = end.split(":").map(Number);
+
+        let st = sh*3600 + sm*60 + ss;
+        let et = eh*3600 + em*60 + es;
+        let total = 24*3600;
+
+        let left = (st / total) * 100;
+        let width = ((et - st) / total) * 100;
+
+        let block = document.createElement("div");
+        block.className = "booked-block";
+        block.style.left = left + "%";
+        block.style.width = width + "%";
+        block.innerText = `${key} ${bookings[key]}`;
+        bar.appendChild(block);
+    }
+}
+
+// ==========================================
+// 取消预约
+// ==========================================
+async function delBook(key) {
+    if (!confirm("确定取消？")) return;
+    const date = document.getElementById("date-picker").value;
+    const data = await getData();
+    if (data[currentDevice][date] && data[currentDevice][date][key]) {
+        delete data[currentDevice][date][key];
+        await saveData(data);
+        loadData();
+        showMsg("已取消", "success");
+    }
+}
+
+// ==========================================
+// 工具函数
+// ==========================================
+function fmt(num) {
+    return num.toString().padStart(2, '0');
+}
+
 function showMsg(text, type) {
-  const m = document.getElementById("msg");
-  m.innerHTML = `<div class="alert alert-${type}">${text}</div>`;
-  setTimeout(() => m.innerHTML = "", 2000);
+    const msg = document.getElementById("message");
+    msg.innerHTML = `<div class="alert alert-${type}">${text}</div>`;
+    setTimeout(() => msg.innerHTML = "", 2500);
 }
+
+// 日期切换时刷新
+document.getElementById("date-picker").addEventListener("change", loadData);
 </script>
 </body>
 </html>
